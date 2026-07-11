@@ -1,14 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { COLORS } from "@/constants/learnloop-theme";
 
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#6C5CE7",
-        tabBarInactiveTintColor: "#94A3B8",
-      }}
+     screenOptions={{
+      headerShown: false,
+       tabBarActiveTintColor: COLORS.primary,
+       tabBarInactiveTintColor: COLORS.textLight,
+       tabBarStyle: {
+       backgroundColor: COLORS.surface,
+       borderTopColor: COLORS.border,
+       },
+     }}
     >
       <Tabs.Screen
         name="(discover)"
