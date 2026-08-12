@@ -303,6 +303,48 @@ export default function SessionDetailsScreen() {
             </Text>
           </View>
         ) : null}
+
+         {session.status === "accepted" ? (
+            <Pressable
+                style={styles.rescheduleButton}
+                onPress={() =>
+                router.push(
+                    `/(tabs)/(sessions)/reschedule/${session.id}` as any,
+                )
+                }
+            >
+                <Ionicons
+                name="calendar-outline"
+                size={19}
+                color="#FFFFFF"
+                />
+
+                <Text style={styles.rescheduleButtonText}>
+                Reschedule Session
+                </Text>
+            </Pressable>
+            ) : null}
+
+        {session.status === "completed" ? (
+          <Pressable
+            style={styles.reviewButton}
+            onPress={() =>
+              router.push(
+                `/(tabs)/(sessions)/review/${session.id}` as any,
+              )
+            }
+          >
+            <Ionicons
+              name="star-outline"
+              size={19}
+              color="#FFFFFF"
+            />
+
+            <Text style={styles.reviewButtonText}>
+              Review Session
+            </Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </>
   );
@@ -458,4 +500,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+
+  reviewButton: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  minHeight: 50,
+  backgroundColor: "#F59E0B",
+  borderRadius: 14,
+  marginBottom: 20,
+},
+
+reviewButtonText: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "700",
+},
+
+rescheduleButton: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  minHeight: 50,
+  backgroundColor: COLORS.primary,
+  borderRadius: 14,
+  marginBottom: 20,
+},
+
+rescheduleButtonText: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "700",
+},
+
 });

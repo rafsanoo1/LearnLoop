@@ -24,6 +24,23 @@ export default function SessionsLayout() {
           title: "Session Details",
         }}
       />
+
+      <Stack.Screen
+        name="reschedule/[id]"
+        options={{
+          title: "Reschedule Session",
+        }}
+      />
+
+      <Stack.Screen
+        name="review/[id]"
+        options={{
+          title: "Session Review",
+        }}
+      />
+
     </Stack>
+    
+    
   );
 }
