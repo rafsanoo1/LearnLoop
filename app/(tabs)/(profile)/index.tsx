@@ -123,15 +123,15 @@ export default function ProfileScreen() {
     .toUpperCase();
 
   const openEditProfile = () => {
-    router.push("/edit-profile" as any);
+    router.push("/edit-profile");
   };
 
   const openCreditHistory = () => {
-    router.push("/credit-history" as any);
+    router.push("/credit-history");
   };
 
   const openSettings = () => {
-    router.push("/settings" as any);
+    router.push("/settings");
   };
 
   return (
