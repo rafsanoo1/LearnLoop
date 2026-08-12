@@ -1,12 +1,13 @@
-
 import ProfileStatCard from "@/components/profile-stat-card";
 import { COLORS } from "@/constants/learnloop-theme";
 import { TRANSACTIONS } from "@/data/transactions";
 import { USERS } from "@/data/users";
 import { CreditTransaction } from "@/types/learnloop";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { ComponentProps } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -77,6 +78,8 @@ function formatDate(date: string) {
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
+
   const currentUser = USERS.find(
     (user) => user.id === CURRENT_USER_ID,
   );
@@ -86,9 +89,9 @@ export default function ProfileScreen() {
       transaction.userId === CURRENT_USER_ID,
   )
     .sort(
-      (firstTransaction, secondTransaction) =>
-        new Date(secondTransaction.date).getTime() -
-        new Date(firstTransaction.date).getTime(),
+      (a, b) =>
+        new Date(b.date).getTime() -
+        new Date(a.date).getTime(),
     )
     .slice(0, 5);
 
@@ -119,30 +122,106 @@ export default function ProfileScreen() {
     .slice(0, 2)
     .toUpperCase();
 
+  const openEditProfile = () => {
+    router.push("/edit-profile" as any);
+  };
+
+  const openCreditHistory = () => {
+    router.push("/credit-history" as any);
+  };
+
+  const openSettings = () => {
+    router.push("/settings" as any);
+  };
+
   return (
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* PROFILE CARD */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+          <Text style={styles.avatarText}>
+            {initials}
+          </Text>
         </View>
 
         <View style={styles.profileInformation}>
-          <Text style={styles.name}>{currentUser.name}</Text>
+          <Text style={styles.name}>
+            {currentUser.name}
+          </Text>
 
           <Text style={styles.studentId}>
             {currentUser.studentId}
           </Text>
 
           <Text style={styles.academicInformation}>
-            {currentUser.department} • {currentUser.semester}
+            {currentUser.department} •{" "}
+            {currentUser.semester}
           </Text>
         </View>
       </View>
 
+      {/* PROFILE ACTION BUTTONS */}
+      <View style={styles.profileActions}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            pressed && styles.actionButtonPressed,
+          ]}
+          onPress={openEditProfile}
+        >
+          <Ionicons
+            name="create-outline"
+            size={21}
+            color={COLORS.primary}
+          />
+
+          <Text style={styles.actionButtonText}>
+            Edit Profile
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            pressed && styles.actionButtonPressed,
+          ]}
+          onPress={openCreditHistory}
+        >
+          <Ionicons
+            name="wallet-outline"
+            size={21}
+            color={COLORS.primary}
+          />
+
+          <Text style={styles.actionButtonText}>
+            Credit History
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            pressed && styles.actionButtonPressed,
+          ]}
+          onPress={openSettings}
+        >
+          <Ionicons
+            name="settings-outline"
+            size={21}
+            color={COLORS.primary}
+          />
+
+          <Text style={styles.actionButtonText}>
+            Settings
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* CREDIT BALANCE */}
       <View style={styles.creditCard}>
         <View style={styles.creditIcon}>
           <Ionicons
@@ -169,6 +248,7 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
+      {/* STATISTICS */}
       <View style={styles.statisticsContainer}>
         <ProfileStatCard
           icon="star-outline"
@@ -189,23 +269,30 @@ export default function ProfileScreen() {
         />
       </View>
 
+      {/* ABOUT */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About Me</Text>
+        <Text style={styles.sectionTitle}>
+          About Me
+        </Text>
 
         <Text style={styles.bio}>
-          {currentUser.bio || "No biography added yet."}
+          {currentUser.bio ||
+            "No biography added yet."}
         </Text>
       </View>
 
+      {/* TEACHING SKILLS */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
             Skills I Teach
           </Text>
 
-          <Text style={styles.skillCount}>
-            {currentUser.teachSkills.length}
-          </Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>
+              {currentUser.teachSkills.length}
+            </Text>
+          </View>
         </View>
 
         {currentUser.teachSkills.length > 0 ? (
@@ -234,15 +321,18 @@ export default function ProfileScreen() {
         )}
       </View>
 
+      {/* LEARNING SKILLS */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
             Skills I Want to Learn
           </Text>
 
-          <Text style={styles.skillCount}>
-            {currentUser.learnSkills.length}
-          </Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>
+              {currentUser.learnSkills.length}
+            </Text>
+          </View>
         </View>
 
         {currentUser.learnSkills.length > 0 ? (
@@ -271,10 +361,19 @@ export default function ProfileScreen() {
         )}
       </View>
 
+      {/* RECENT ACTIVITY */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          Recent Activity
-        </Text>
+        <View style={styles.activityHeader}>
+          <Text style={styles.sectionTitle}>
+            Recent Activity
+          </Text>
+
+          <Pressable onPress={openCreditHistory}>
+            <Text style={styles.viewAllText}>
+              View All
+            </Text>
+          </Pressable>
+        </View>
 
         {userTransactions.length > 0 ? (
           userTransactions.map((transaction) => {
@@ -302,15 +401,23 @@ export default function ProfileScreen() {
                   />
                 </View>
 
-                <View style={styles.transactionInformation}>
+                <View
+                  style={
+                    styles.transactionInformation
+                  }
+                >
                   <Text
-                    style={styles.transactionDescription}
+                    style={
+                      styles.transactionDescription
+                    }
                     numberOfLines={2}
                   >
                     {transaction.description}
                   </Text>
 
-                  <Text style={styles.transactionDate}>
+                  <Text
+                    style={styles.transactionDate}
+                  >
                     {formatDate(transaction.date)}
                   </Text>
                 </View>
@@ -318,7 +425,10 @@ export default function ProfileScreen() {
                 <Text
                   style={[
                     styles.transactionAmount,
-                    { color: transactionStyle.color },
+                    {
+                      color:
+                        transactionStyle.color,
+                    },
                   ]}
                 >
                   {transactionStyle.prefix}
@@ -356,7 +466,7 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     alignSelf: "center",
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 50,
   },
 
   profileCard: {
@@ -367,7 +477,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 18,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 12,
   },
 
   avatar: {
@@ -410,6 +520,37 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
+  profileActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+
+  actionButton: {
+    flex: 1,
+    minHeight: 62,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 5,
+    paddingVertical: 8,
+  },
+
+  actionButtonPressed: {
+    opacity: 0.7,
+  },
+
+  actionButtonText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 5,
+    textAlign: "center",
+  },
+
   creditCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -424,7 +565,8 @@ const styles = StyleSheet.create({
     height: 52,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    backgroundColor:
+      "rgba(255, 255, 255, 0.18)",
     borderRadius: 15,
     marginRight: 14,
   },
@@ -475,6 +617,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
+  activityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
   sectionTitle: {
     color: COLORS.textPrimary,
     fontSize: 17,
@@ -482,14 +630,25 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  skillCount: {
+  countBadge: {
     minWidth: 28,
-    textAlign: "center",
-    color: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#EEF2FF",
     borderRadius: 14,
     paddingHorizontal: 8,
     paddingVertical: 4,
+    marginBottom: 14,
+  },
+
+  countText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  viewAllText: {
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: "700",
     marginBottom: 14,
