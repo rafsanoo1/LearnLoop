@@ -17,6 +17,27 @@ export default function ProfileLayout() {
           headerShadowVisible: false,
         }}
       />
+
+      <Stack.Screen
+        name="edit-profile"
+        options={{
+          title: "Edit Profile",
+        }}
+      />
+
+      <Stack.Screen
+        name="credit-history"
+        options={{
+          title: "Credit History",
+        }}
+      />
+
+      <Stack.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+        }}
+      />
     </Stack>
   );
 }
