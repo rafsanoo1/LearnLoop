@@ -1,31 +1,55 @@
 import { COLORS, SPACING } from "@/constants/learnloop-theme";
+import { createSkillRequest } from "@/services/skillRequestService";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
-const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
+const LEVELS = [
+  "Beginner",
+  "Intermediate",
+  "Advanced",
+] as const;
 
-const MODES = ["Online", "In Person", "Either"] as const;
+const MODES = [
+  "Online",
+  "In Person",
+  "Either",
+] as const;
 
 export default function RequestSkillScreen() {
   const [skillName, setSkillName] = useState("");
   const [category, setCategory] = useState("");
+
   const [level, setLevel] =
-    useState<(typeof LEVELS)[number]>("Beginner");
+    useState<(typeof LEVELS)[number]>(
+      "Beginner"
+    );
+
   const [mode, setMode] =
-    useState<(typeof MODES)[number]>("Either");
-  const [learningGoal, setLearningGoal] = useState("");
+    useState<(typeof MODES)[number]>(
+      "Either"
+    );
+
+  const [learningGoal, setLearningGoal] =
+    useState("");
+
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
+
+  const [submitError, setSubmitError] =
+    useState("");
 
   const [errors, setErrors] = useState<{
     skillName?: string;
@@ -46,46 +70,138 @@ export default function RequestSkillScreen() {
     }
 
     if (!category.trim()) {
-      newErrors.category = "Category is required.";
+      newErrors.category =
+        "Category is required.";
     }
 
-    if (learningGoal.trim().length < 10) {
+    if (
+      learningGoal.trim().length < 10
+    ) {
       newErrors.learningGoal =
         "Please describe what you want to learn in at least 10 characters.";
     }
 
     setErrors(newErrors);
 
-    return Object.keys(newErrors).length === 0;
+    return (
+      Object.keys(newErrors).length === 0
+    );
   };
 
-  const handleSubmit = () => {
+  const handleSkillNameChange = (
+    text: string
+  ) => {
+    setSkillName(text);
+
+    if (errors.skillName) {
+      setErrors((current) => ({
+        ...current,
+        skillName: undefined,
+      }));
+    }
+
+    if (submitError) {
+      setSubmitError("");
+    }
+  };
+
+  const handleCategoryChange = (
+    text: string
+  ) => {
+    setCategory(text);
+
+    if (errors.category) {
+      setErrors((current) => ({
+        ...current,
+        category: undefined,
+      }));
+    }
+
+    if (submitError) {
+      setSubmitError("");
+    }
+  };
+
+  const handleLearningGoalChange = (
+    text: string
+  ) => {
+    setLearningGoal(text);
+
+    if (errors.learningGoal) {
+      setErrors((current) => ({
+        ...current,
+        learningGoal: undefined,
+      }));
+    }
+
+    if (submitError) {
+      setSubmitError("");
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
 
-    const message =
-      "Your skill request has been submitted. We will look for students who can teach this skill.";
+    setIsSubmitting(true);
+    setSubmitError("");
 
-    if (Platform.OS === "web") {
-      window.alert(message);
-      router.back();
-      return;
+    try {
+      await createSkillRequest({
+        requesterId: "u1",
+        skillName: skillName.trim(),
+        category: category.trim(),
+        level,
+        mode,
+        learningGoal:
+          learningGoal.trim(),
+      });
+
+      const message =
+        "Your skill request has been submitted successfully. We will look for students who can teach this skill.";
+
+      if (Platform.OS === "web") {
+        window.alert(message);
+        router.back();
+        return;
+      }
+
+      Alert.alert(
+        "Skill Requested",
+        message,
+        [
+          {
+            text: "OK",
+            onPress: () =>
+              router.back(),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error(
+        "Skill request failed:",
+        error
+      );
+
+      setSubmitError(
+        "Unable to submit your skill request. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    Alert.alert("Skill Requested", message, [
-      {
-        text: "OK",
-        onPress: () => router.back(),
-      },
-    ]);
   };
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={
+          styles.content
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.heroCard}>
           <View style={styles.heroIcon}>
@@ -96,73 +212,82 @@ export default function RequestSkillScreen() {
             />
           </View>
 
-          <View style={styles.heroTextContainer}>
+          <View
+            style={
+              styles.heroTextContainer
+            }
+          >
             <Text style={styles.heroTitle}>
               Request a Skill
             </Text>
 
-            <Text style={styles.heroSubtitle}>
-              Cannot find what you want to learn? Tell us
-              what skill you are looking for.
+            <Text
+              style={styles.heroSubtitle}
+            >
+              Cannot find what you want to
+              learn? Tell us what skill you
+              are looking for.
             </Text>
           </View>
         </View>
 
         <View style={styles.formCard}>
-          <Text style={styles.label}>Skill Name</Text>
+          <Text style={styles.label}>
+            Skill Name
+          </Text>
 
           <TextInput
             value={skillName}
-            onChangeText={(text) => {
-              setSkillName(text);
-
-              if (errors.skillName) {
-                setErrors((current) => ({
-                  ...current,
-                  skillName: undefined,
-                }));
-              }
-            }}
+            onChangeText={
+              handleSkillNameChange
+            }
             placeholder="e.g. Adobe Photoshop"
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={
+              COLORS.textLight
+            }
             style={[
               styles.input,
-              errors.skillName && styles.inputError,
+              errors.skillName
+                ? styles.inputError
+                : null,
             ]}
             accessibilityLabel="Skill name"
           />
 
           {errors.skillName ? (
-            <Text style={styles.errorText}>
+            <Text
+              style={styles.errorText}
+            >
               {errors.skillName}
             </Text>
           ) : null}
 
-          <Text style={styles.label}>Category</Text>
+          <Text style={styles.label}>
+            Category
+          </Text>
 
           <TextInput
             value={category}
-            onChangeText={(text) => {
-              setCategory(text);
-
-              if (errors.category) {
-                setErrors((current) => ({
-                  ...current,
-                  category: undefined,
-                }));
-              }
-            }}
+            onChangeText={
+              handleCategoryChange
+            }
             placeholder="e.g. Design, Programming, Language"
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={
+              COLORS.textLight
+            }
             style={[
               styles.input,
-              errors.category && styles.inputError,
+              errors.category
+                ? styles.inputError
+                : null,
             ]}
             accessibilityLabel="Skill category"
           />
 
           {errors.category ? (
-            <Text style={styles.errorText}>
+            <Text
+              style={styles.errorText}
+            >
               {errors.category}
             </Text>
           ) : null}
@@ -173,25 +298,33 @@ export default function RequestSkillScreen() {
 
           <View style={styles.optionRow}>
             {LEVELS.map((item) => {
-              const selected = level === item;
+              const selected =
+                level === item;
 
               return (
                 <Pressable
                   key={item}
                   style={[
                     styles.optionButton,
-                    selected &&
-                      styles.optionButtonSelected,
+                    selected
+                      ? styles.optionButtonSelected
+                      : null,
                   ]}
-                  onPress={() => setLevel(item)}
+                  onPress={() =>
+                    setLevel(item)
+                  }
                   accessibilityRole="button"
                   accessibilityLabel={`Select ${item} learning level`}
+                  accessibilityState={{
+                    selected,
+                  }}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      selected &&
-                        styles.optionTextSelected,
+                      selected
+                        ? styles.optionTextSelected
+                        : null,
                     ]}
                   >
                     {item}
@@ -207,25 +340,33 @@ export default function RequestSkillScreen() {
 
           <View style={styles.optionRow}>
             {MODES.map((item) => {
-              const selected = mode === item;
+              const selected =
+                mode === item;
 
               return (
                 <Pressable
                   key={item}
                   style={[
                     styles.optionButton,
-                    selected &&
-                      styles.optionButtonSelected,
+                    selected
+                      ? styles.optionButtonSelected
+                      : null,
                   ]}
-                  onPress={() => setMode(item)}
+                  onPress={() =>
+                    setMode(item)
+                  }
                   accessibilityRole="button"
                   accessibilityLabel={`Select ${item} session mode`}
+                  accessibilityState={{
+                    selected,
+                  }}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      selected &&
-                        styles.optionTextSelected,
+                      selected
+                        ? styles.optionTextSelected
+                        : null,
                     ]}
                   >
                     {item}
@@ -241,75 +382,143 @@ export default function RequestSkillScreen() {
 
           <TextInput
             value={learningGoal}
-            onChangeText={(text) => {
-              setLearningGoal(text);
-
-              if (errors.learningGoal) {
-                setErrors((current) => ({
-                  ...current,
-                  learningGoal: undefined,
-                }));
-              }
-            }}
+            onChangeText={
+              handleLearningGoalChange
+            }
             placeholder="Describe what you want to learn and what you want to achieve..."
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={
+              COLORS.textLight
+            }
             multiline
             maxLength={300}
             textAlignVertical="top"
             style={[
               styles.textArea,
-              errors.learningGoal && styles.inputError,
+              errors.learningGoal
+                ? styles.inputError
+                : null,
             ]}
             accessibilityLabel="Learning goal"
           />
 
-          <Text style={styles.characterCount}>
-            {learningGoal.length}/300 characters
+          <Text
+            style={
+              styles.characterCount
+            }
+          >
+            {learningGoal.length}/300
+            characters
           </Text>
 
           {errors.learningGoal ? (
-            <Text style={styles.errorText}>
+            <Text
+              style={styles.errorText}
+            >
               {errors.learningGoal}
             </Text>
           ) : null}
         </View>
 
         <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
+          <View
+            style={styles.summaryHeader}
+          >
             <Ionicons
               name="information-circle-outline"
               size={21}
               color={COLORS.primary}
             />
 
-            <Text style={styles.summaryTitle}>
+            <Text
+              style={styles.summaryTitle}
+            >
               How it works
             </Text>
           </View>
 
-          <Text style={styles.summaryText}>
-            Your request will help LearnLoop identify skills
-            students want to learn. Students who can teach
-            the requested skill can later create matching
-            skill offers.
+          <Text
+            style={styles.summaryText}
+          >
+            Your request will help LearnLoop
+            identify skills students want to
+            learn. Students who can teach the
+            requested skill can later create
+            matching skill offers.
           </Text>
         </View>
 
+        {submitError ? (
+          <View
+            style={styles.submitErrorCard}
+          >
+            <Ionicons
+              name="alert-circle-outline"
+              size={19}
+              color={COLORS.danger}
+            />
+
+            <Text
+              style={
+                styles.submitErrorText
+              }
+            >
+              {submitError}
+            </Text>
+          </View>
+        ) : null}
+
         <Pressable
-          style={styles.submitButton}
-          onPress={handleSubmit}
+          style={({ pressed }) => [
+            styles.submitButton,
+            isSubmitting
+              ? styles.submitButtonDisabled
+              : null,
+            pressed && !isSubmitting
+              ? styles.submitButtonPressed
+              : null,
+          ]}
+          onPress={() => {
+            void handleSubmit();
+          }}
+          disabled={isSubmitting}
           accessibilityRole="button"
           accessibilityLabel="Submit skill request"
+          accessibilityState={{
+            disabled: isSubmitting,
+          }}
         >
-          <Ionicons
-            name="send-outline"
-            size={19}
-            color={COLORS.white}
-          />
+          {isSubmitting ? (
+            <>
+              <ActivityIndicator
+                size="small"
+                color={COLORS.white}
+              />
 
-          <Text style={styles.submitButtonText}>
-            Submit Skill Request
-          </Text>
+              <Text
+                style={
+                  styles.submitButtonText
+                }
+              >
+                Submitting...
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons
+                name="send-outline"
+                size={19}
+                color={COLORS.white}
+              />
+
+              <Text
+                style={
+                  styles.submitButtonText
+                }
+              >
+                Submit Skill Request
+              </Text>
+            </>
+          )}
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -319,7 +528,8 @@ export default function RequestSkillScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor:
+      COLORS.background,
   },
 
   content: {
@@ -342,7 +552,8 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor:
+      COLORS.primaryLight,
     alignItems: "center",
     justifyContent: "center",
     marginRight: SPACING.md,
@@ -383,7 +594,8 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor:
+      COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -395,7 +607,8 @@ const styles = StyleSheet.create({
 
   textArea: {
     minHeight: 120,
-    backgroundColor: COLORS.background,
+    backgroundColor:
+      COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -430,7 +643,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
+    backgroundColor:
+      COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -458,7 +672,8 @@ const styles = StyleSheet.create({
   },
 
   summaryCard: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor:
+      COLORS.primaryLight,
     borderRadius: 16,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
@@ -483,6 +698,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  submitErrorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+    borderRadius: 12,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+
+  submitErrorText: {
+    flex: 1,
+    color: COLORS.danger,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
   submitButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -491,6 +725,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 15,
+  },
+
+  submitButtonPressed: {
+    opacity: 0.8,
+  },
+
+  submitButtonDisabled: {
+    opacity: 0.65,
   },
 
   submitButtonText: {
