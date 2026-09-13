@@ -1,35 +1,88 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { LearnLoopProvider } from "@/context/LearnLoopContext";
+import { COLORS } from "@/constants/learnloop-theme";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+    <LearnLoopProvider>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: COLORS.primary,
+          tabBarInactiveTintColor: COLORS.textLight,
+          tabBarStyle: {
+            backgroundColor: COLORS.surface,
+            borderTopColor: COLORS.border,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="(discover)"
+          options={{
+            title: "Discover",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons
+                name="search-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="(teach)"
+          options={{
+            title: "Teach",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons
+                name="school-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="(sessions)"
+          options={{
+            title: "Sessions",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons
+                name="calendar-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="(profile)"
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons
+                name="person-outline"
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="index"
+          options={{ href: null }}
+        />
+
+        <Tabs.Screen
+          name="explore"
+          options={{ href: null }}
+        />
+      </Tabs>
+    </LearnLoopProvider>
   );
 }
