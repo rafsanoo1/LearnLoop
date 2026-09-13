@@ -1,12 +1,13 @@
 import ProfileStatCard from "@/components/profile-stat-card";
 import { COLORS } from "@/constants/learnloop-theme";
 import { TRANSACTIONS } from "@/data/transactions";
-import { USERS } from "@/data/users";
+import { useLearnLoop } from "@/context/LearnLoopContext";
 import { CreditTransaction } from "@/types/learnloop";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { ComponentProps } from "react";
+import { ComponentProps, useEffect } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,7 +17,8 @@ import {
 
 const CURRENT_USER_ID = "u1";
 
-type IoniconName = ComponentProps<typeof Ionicons>["name"];
+type IoniconName =
+  ComponentProps<typeof Ionicons>["name"];
 
 interface TransactionStyle {
   icon: IoniconName;
@@ -80,9 +82,17 @@ function formatDate(date: string) {
 export default function ProfileScreen() {
   const router = useRouter();
 
-  const currentUser = USERS.find(
-    (user) => user.id === CURRENT_USER_ID,
-  );
+  const {
+    state,
+    loadUserById,
+  } = useLearnLoop();
+
+  const currentUser =
+    state.users[CURRENT_USER_ID];
+
+  useEffect(() => {
+    loadUserById(CURRENT_USER_ID);
+  }, []);
 
   const userTransactions = TRANSACTIONS.filter(
     (transaction) =>
@@ -94,6 +104,52 @@ export default function ProfileScreen() {
         new Date(a.date).getTime(),
     )
     .slice(0, 5);
+
+  if (state.userLoading && !currentUser) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator
+          size="large"
+          color={COLORS.primary}
+        />
+
+        <Text style={styles.loadingText}>
+          Loading profile...
+        </Text>
+      </View>
+    );
+  }
+
+  if (state.userError && !currentUser) {
+    return (
+      <View style={styles.notFoundContainer}>
+        <Ionicons
+          name="cloud-offline-outline"
+          size={60}
+          color={COLORS.textSecondary}
+        />
+
+        <Text style={styles.notFoundTitle}>
+          Unable to load profile
+        </Text>
+
+        <Text style={styles.notFoundDescription}>
+          {state.userError}
+        </Text>
+
+        <Pressable
+          style={styles.retryButton}
+          onPress={() =>
+            loadUserById(CURRENT_USER_ID)
+          }
+        >
+          <Text style={styles.retryButtonText}>
+            Try Again
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (!currentUser) {
     return (
@@ -117,6 +173,7 @@ export default function ProfileScreen() {
 
   const initials = currentUser.name
     .split(" ")
+    .filter(Boolean)
     .map((word) => word.charAt(0))
     .join("")
     .slice(0, 2)
@@ -169,7 +226,8 @@ export default function ProfileScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
-            pressed && styles.actionButtonPressed,
+            pressed &&
+              styles.actionButtonPressed,
           ]}
           onPress={openEditProfile}
         >
@@ -187,7 +245,8 @@ export default function ProfileScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
-            pressed && styles.actionButtonPressed,
+            pressed &&
+              styles.actionButtonPressed,
           ]}
           onPress={openCreditHistory}
         >
@@ -205,7 +264,8 @@ export default function ProfileScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
-            pressed && styles.actionButtonPressed,
+            pressed &&
+              styles.actionButtonPressed,
           ]}
           onPress={openSettings}
         >
@@ -297,22 +357,26 @@ export default function ProfileScreen() {
 
         {currentUser.teachSkills.length > 0 ? (
           <View style={styles.skillsContainer}>
-            {currentUser.teachSkills.map((skill) => (
-              <View
-                key={`teach-${skill}`}
-                style={styles.teachSkillChip}
-              >
-                <Ionicons
-                  name="bulb-outline"
-                  size={15}
-                  color="#4338CA"
-                />
+            {currentUser.teachSkills.map(
+              (skill) => (
+                <View
+                  key={`teach-${skill}`}
+                  style={styles.teachSkillChip}
+                >
+                  <Ionicons
+                    name="bulb-outline"
+                    size={15}
+                    color="#4338CA"
+                  />
 
-                <Text style={styles.teachSkillText}>
-                  {skill}
-                </Text>
-              </View>
-            ))}
+                  <Text
+                    style={styles.teachSkillText}
+                  >
+                    {skill}
+                  </Text>
+                </View>
+              ),
+            )}
           </View>
         ) : (
           <Text style={styles.emptyText}>
@@ -337,22 +401,26 @@ export default function ProfileScreen() {
 
         {currentUser.learnSkills.length > 0 ? (
           <View style={styles.skillsContainer}>
-            {currentUser.learnSkills.map((skill) => (
-              <View
-                key={`learn-${skill}`}
-                style={styles.learnSkillChip}
-              >
-                <Ionicons
-                  name="book-outline"
-                  size={15}
-                  color="#0369A1"
-                />
+            {currentUser.learnSkills.map(
+              (skill) => (
+                <View
+                  key={`learn-${skill}`}
+                  style={styles.learnSkillChip}
+                >
+                  <Ionicons
+                    name="book-outline"
+                    size={15}
+                    color="#0369A1"
+                  />
 
-                <Text style={styles.learnSkillText}>
-                  {skill}
-                </Text>
-              </View>
-            ))}
+                  <Text
+                    style={styles.learnSkillText}
+                  >
+                    {skill}
+                  </Text>
+                </View>
+              ),
+            )}
           </View>
         ) : (
           <Text style={styles.emptyText}>
@@ -376,67 +444,79 @@ export default function ProfileScreen() {
         </View>
 
         {userTransactions.length > 0 ? (
-          userTransactions.map((transaction) => {
-            const transactionStyle =
-              getTransactionStyle(transaction.type);
+          userTransactions.map(
+            (transaction) => {
+              const transactionStyle =
+                getTransactionStyle(
+                  transaction.type,
+                );
 
-            return (
-              <View
-                key={transaction.id}
-                style={styles.transactionRow}
-              >
+              return (
                 <View
-                  style={[
-                    styles.transactionIcon,
-                    {
-                      backgroundColor:
-                        transactionStyle.backgroundColor,
-                    },
-                  ]}
+                  key={transaction.id}
+                  style={styles.transactionRow}
                 >
-                  <Ionicons
-                    name={transactionStyle.icon}
-                    size={21}
-                    color={transactionStyle.color}
-                  />
-                </View>
+                  <View
+                    style={[
+                      styles.transactionIcon,
+                      {
+                        backgroundColor:
+                          transactionStyle.backgroundColor,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        transactionStyle.icon
+                      }
+                      size={21}
+                      color={
+                        transactionStyle.color
+                      }
+                    />
+                  </View>
 
-                <View
-                  style={
-                    styles.transactionInformation
-                  }
-                >
-                  <Text
+                  <View
                     style={
-                      styles.transactionDescription
+                      styles.transactionInformation
                     }
-                    numberOfLines={2}
                   >
-                    {transaction.description}
-                  </Text>
+                    <Text
+                      style={
+                        styles.transactionDescription
+                      }
+                      numberOfLines={2}
+                    >
+                      {transaction.description}
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.transactionDate
+                      }
+                    >
+                      {formatDate(
+                        transaction.date,
+                      )}
+                    </Text>
+                  </View>
 
                   <Text
-                    style={styles.transactionDate}
+                    style={[
+                      styles.transactionAmount,
+                      {
+                        color:
+                          transactionStyle.color,
+                      },
+                    ]}
                   >
-                    {formatDate(transaction.date)}
+                    {transactionStyle.prefix}
+                    {transaction.amount}
                   </Text>
                 </View>
-
-                <Text
-                  style={[
-                    styles.transactionAmount,
-                    {
-                      color:
-                        transactionStyle.color,
-                    },
-                  ]}
-                >
-                  {transactionStyle.prefix}
-                  {transaction.amount}
-                </Text>
-              </View>
-            );
-          })
+              );
+            },
+          )
         ) : (
           <View style={styles.emptyActivity}>
             <Ionicons
@@ -752,6 +832,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F8FC",
+  },
+
+  loadingText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginTop: 12,
+  },
+
   notFoundContainer: {
     flex: 1,
     alignItems: "center",
@@ -772,5 +865,19 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 14,
     textAlign: "center",
+  },
+
+  retryButton: {
+    marginTop: 18,
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+  },
+
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

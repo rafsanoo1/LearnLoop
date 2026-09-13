@@ -30,6 +30,15 @@ interface ApiUser {
   completedSessions: number;
 }
 
+export interface UpdateUserRequest {
+  name: string;
+  department: string;
+  semester: string;
+  bio: string;
+  teachSkills: string[];
+  learnSkills: string[];
+}
+
 const normalizeUser = (
   user: ApiUser
 ): AppUser => {
@@ -49,11 +58,27 @@ const normalizeUser = (
   };
 };
 
+
+// GET USER BY ID
 export const getUserById = async (
   id: string
 ): Promise<AppUser> => {
   const response = await api.get<ApiUser>(
     `/users/${id}`
+  );
+
+  return normalizeUser(response.data);
+};
+
+
+// UPDATE USER PROFILE
+export const updateUser = async (
+  id: string,
+  userData: UpdateUserRequest
+): Promise<AppUser> => {
+  const response = await api.patch<ApiUser>(
+    `/users/${id}`,
+    userData
   );
 
   return normalizeUser(response.data);

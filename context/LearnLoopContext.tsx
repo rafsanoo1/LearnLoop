@@ -13,6 +13,9 @@ import {
 
 import {
   getUserById as fetchUserById,
+  updateUser as updateUserApi,
+  UpdateUserRequest,
+  AppUser,
 } from "@/services/userService";
 
 import {
@@ -39,6 +42,10 @@ interface LearnLoopContextValue {
   ) => Promise<void>;
 
   loadCurrentUser: () => Promise<void>;
+
+  updateCurrentUser: (
+    userData: UpdateUserRequest
+  ) => Promise<AppUser>;
 }
 
 const LearnLoopContext =
@@ -190,6 +197,33 @@ export function LearnLoopProvider({
     }
   };
 
+  const updateCurrentUser = async (
+    userData: UpdateUserRequest
+  ): Promise<AppUser> => {
+    try {
+      const updatedUser =
+        await updateUserApi(
+          CURRENT_USER_ID,
+          userData
+        );
+
+      dispatch({
+        type:
+          "SET_CURRENT_USER_SUCCESS",
+        payload: updatedUser,
+      });
+
+      return updatedUser;
+    } catch (error) {
+      console.error(
+        "Failed to update current user:",
+        error
+      );
+
+      throw error;
+    }
+  };
+
   useEffect(() => {
     void loadCurrentUser();
   }, []);
@@ -203,6 +237,7 @@ export function LearnLoopProvider({
         clearSelectedSkill,
         loadUserById,
         loadCurrentUser,
+        updateCurrentUser,
       }}
     >
       {children}
