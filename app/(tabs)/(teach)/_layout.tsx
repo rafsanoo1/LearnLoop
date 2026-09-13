@@ -1,36 +1,43 @@
-import { COLORS } from "@/constants/learnloop-theme";
 import { Stack } from "expo-router";
 
 export default function TeachLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: COLORS.surface,
-        },
-        headerTintColor: COLORS.textPrimary,
-        headerTitleStyle: {
-          fontWeight: "700",
-        },
-      }}
-    >
-      <Stack.Screen name="index" options={{ title: "Teach" }} />
-      
+    <Stack>
+      <Stack.Screen
+        name="index"
+        options={{
+          title: "Teach",
+          headerShown: false,
+        }}
+      />
+
       <Stack.Screen
         name="create"
-        options={{ title: "Create Skill Offer" }}
+        options={{
+          title: "Create Skill",
+        }}
       />
 
       <Stack.Screen
         name="edit/[id]"
-        options={{ title: "Edit Skill Offer" }}
+        options={{
+          title: "Edit Skill",
+        }}
       />
 
       <Stack.Screen
         name="incoming-requests"
-        options={{ title: "Incoming Requests" }}
+        options={{
+          title: "Incoming Requests",
+        }}
       />
 
+      <Stack.Screen
+        name="requested-skills"
+        options={{
+          title: "Requested Skills",
+        }}
+      />
     </Stack>
   );
 }
