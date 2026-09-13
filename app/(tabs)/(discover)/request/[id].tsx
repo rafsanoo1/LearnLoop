@@ -1,28 +1,16 @@
-import {
-  COLORS,
-  RADIUS,
-  SPACING,
-} from "@/constants/learnloop-theme";
+import { COLORS } from "@/constants/learnloop-theme";
 import { useLearnLoop } from "@/context/LearnLoopContext";
 import { createSession } from "@/services/sessionService";
-import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
-import {
-  router,
-  useLocalSearchParams,
-} from "expo-router";
-import React, {
-  useEffect,
-  useState,
-} from "react";
+
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+
+import { useEffect, useMemo, useState } from "react";
+
 import {
   ActivityIndicator,
   Alert,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,37 +18,47 @@ import {
   View,
 } from "react-native";
 
+
 export default function RequestSessionScreen() {
-  const { id } = useLocalSearchParams<{
-    id: string;
-  }>();
+  const router = useRouter();
+
+  const { id } =
+    useLocalSearchParams<{
+      id: string;
+    }>();
+
 
   const {
     state: {
       selectedSkill,
       selectedSkillLoading,
       selectedSkillError,
+      currentUser,
+      currentUserLoading,
+      currentUserError,
     },
+
     loadSkillById,
+    loadCurrentUser,
   } = useLearnLoop();
 
-  const [date, setDate] = useState("");
-  const [selectedDate, setSelectedDate] =
-    useState<Date | null>(null);
 
-  const [showDatePicker, setShowDatePicker] =
-    useState(false);
+  const [date, setDate] =
+    useState("");
 
-  const [time, setTime] = useState("");
+  const [time, setTime] =
+    useState("");
+
   const [duration, setDuration] =
-    useState("60");
-
-  const [mode, setMode] = useState<
-    "Online" | "In Person"
-  >("Online");
+    useState("");
 
   const [objective, setObjective] =
     useState("");
+
+  const [mode, setMode] =
+    useState<"Online" | "In Person">(
+      "Online"
+    );
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -68,1428 +66,964 @@ export default function RequestSessionScreen() {
   const [submitError, setSubmitError] =
     useState("");
 
-  const [errors, setErrors] = useState({
-    date: "",
-    time: "",
-    objective: "",
-  });
 
+  /*
+   * Load the selected real skill and
+   * the real current user.
+   */
   useEffect(() => {
     if (id) {
       void loadSkillById(id);
     }
+
+    void loadCurrentUser();
   }, [id]);
 
+
+  /*
+   * Use the skill's default duration
+   * when available.
+   */
   useEffect(() => {
-    if (!selectedSkill) {
-      return;
-    }
-
     if (
-      selectedSkill.mode === "In Person"
+      selectedSkill &&
+      !duration
     ) {
-      setMode("In Person");
-    } else {
-      setMode("Online");
+      setDuration(
+        String(selectedSkill.duration)
+      );
     }
-
-    setDuration(
-      String(
-        selectedSkill.duration || 60
-      )
-    );
   }, [selectedSkill]);
 
-  const formatDate = (
-    value: Date
-  ) => {
-    const year =
-      value.getFullYear();
 
-    const month = String(
-      value.getMonth() + 1
-    ).padStart(2, "0");
+  /*
+   * Calculate the credit cost.
+   *
+   * LearnLoop uses 1 credit for a
+   * 60-minute session.
+   */
+  const numericDuration =
+    Number(duration);
 
-    const day = String(
-      value.getDate()
-    ).padStart(2, "0");
 
-    return `${year}-${month}-${day}`;
-  };
+  const creditCost = useMemo(() => {
+    if (
+      !numericDuration ||
+      numericDuration <= 0
+    ) {
+      return 0;
+    }
 
-  const getToday = () => {
-    const today = new Date();
+    return numericDuration / 60;
+  }, [numericDuration]);
 
-    today.setHours(
-      0,
-      0,
-      0,
-      0
-    );
 
-    return today;
-  };
+  const submitRequest = async () => {
+    setSubmitError("");
 
-  const getTodayString = () => {
-    return formatDate(getToday());
-  };
 
-  const isValidDateString = (
-    value: string
-  ) => {
-    const match =
-      /^(\d{4})-(\d{2})-(\d{2})$/.exec(
-        value
+    if (!selectedSkill || !id) {
+      setSubmitError(
+        "Unable to identify the selected skill."
       );
-
-    if (!match) {
-      return false;
-    }
-
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-
-    const parsedDate = new Date(
-      year,
-      month - 1,
-      day
-    );
-
-    parsedDate.setHours(
-      0,
-      0,
-      0,
-      0
-    );
-
-    return (
-      parsedDate.getFullYear() ===
-        year &&
-      parsedDate.getMonth() ===
-        month - 1 &&
-      parsedDate.getDate() === day
-    );
-  };
-
-  const isPastDate = (
-    value: string
-  ) => {
-    if (!isValidDateString(value)) {
-      return false;
-    }
-
-    const [
-      year,
-      month,
-      day,
-    ] = value
-      .split("-")
-      .map(Number);
-
-    const chosenDate = new Date(
-      year,
-      month - 1,
-      day
-    );
-
-    chosenDate.setHours(
-      0,
-      0,
-      0,
-      0
-    );
-
-    return (
-      chosenDate < getToday()
-    );
-  };
-
-  const handleNativeDateChange = (
-    event: DateTimePickerEvent,
-    value?: Date
-  ) => {
-    if (
-      Platform.OS === "android"
-    ) {
-      setShowDatePicker(false);
-    }
-
-    if (
-      event.type === "dismissed" ||
-      !value
-    ) {
       return;
     }
 
-    value.setHours(
-      0,
-      0,
-      0,
-      0
-    );
 
-    setSelectedDate(value);
-    setDate(formatDate(value));
-
-    if (errors.date) {
-      setErrors((previous) => ({
-        ...previous,
-        date: "",
-      }));
-    }
-
-    if (submitError) {
-      setSubmitError("");
-    }
-  };
-
-  const handleWebDateChange = (
-    event: any
-  ) => {
-    const value =
-      event.target.value;
-
-    setDate(value);
-
-    if (value) {
-      const [
-        year,
-        month,
-        day,
-      ] = value
-        .split("-")
-        .map(Number);
-
-      const parsedDate =
-        new Date(
-          year,
-          month - 1,
-          day
-        );
-
-      parsedDate.setHours(
-        0,
-        0,
-        0,
-        0
+    if (!currentUser) {
+      setSubmitError(
+        "Unable to identify the current user. Please try again."
       );
-
-      setSelectedDate(
-        parsedDate
-      );
-    } else {
-      setSelectedDate(null);
+      return;
     }
 
-    if (errors.date) {
-      setErrors((previous) => ({
-        ...previous,
-        date: "",
-      }));
-    }
-
-    if (submitError) {
-      setSubmitError("");
-    }
-  };
-
-  const handleTimeChange = (
-    text: string
-  ) => {
-    setTime(text);
-
-    if (errors.time) {
-      setErrors((previous) => ({
-        ...previous,
-        time: "",
-      }));
-    }
-
-    if (submitError) {
-      setSubmitError("");
-    }
-  };
-
-  const handleObjectiveChange = (
-    text: string
-  ) => {
-    setObjective(text);
-
-    if (errors.objective) {
-      setErrors((previous) => ({
-        ...previous,
-        objective: "",
-      }));
-    }
-
-    if (submitError) {
-      setSubmitError("");
-    }
-  };
-
-  const validateForm = () => {
-    let dateError = "";
 
     if (!date.trim()) {
-      dateError =
-        "Preferred date is required.";
-    } else if (
-      !isValidDateString(
-        date.trim()
-      )
-    ) {
-      dateError =
-        "Please select a valid date.";
-    } else if (
-      isPastDate(date.trim())
-    ) {
-      dateError =
-        "Preferred date cannot be in the past.";
+      setSubmitError(
+        "Please enter a session date."
+      );
+      return;
     }
 
-    const newErrors = {
-      date: dateError,
 
-      time: time.trim()
-        ? ""
-        : "Preferred time is required.",
+    if (!time.trim()) {
+      setSubmitError(
+        "Please enter a session time."
+      );
+      return;
+    }
 
-      objective:
-        objective.trim()
-          .length >= 10
-          ? ""
-          : "Learning objective must be at least 10 characters.",
-    };
 
-    setErrors(newErrors);
+    if (
+      !numericDuration ||
+      numericDuration <= 0
+    ) {
+      setSubmitError(
+        "Please enter a valid duration."
+      );
+      return;
+    }
 
-    return Object.values(
-      newErrors
-    ).every(
-      (error) => error === ""
-    );
-  };
 
-  const handleSubmit =
-    async () => {
-      if (
-        !selectedSkill ||
-        !id
-      ) {
-        return;
-      }
+    if (!objective.trim()) {
+      setSubmitError(
+        "Please enter your learning objective."
+      );
+      return;
+    }
 
-      if (!validateForm()) {
-        return;
-      }
 
+    /*
+     * Prevent a user from requesting
+     * their own skill.
+     */
+    if (
+      selectedSkill.mentorId ===
+      currentUser.id
+    ) {
+      setSubmitError(
+        "You cannot request a session for your own skill."
+      );
+      return;
+    }
+
+
+    try {
       setIsSubmitting(true);
-      setSubmitError("");
 
-      try {
-        const numericDuration =
-          Number(duration);
 
-        const creditCost =
-          numericDuration / 60;
+      /*
+       * This creates a REAL session in
+       * MongoDB through POST /api/sessions.
+       *
+       * The backend determines mentorId
+       * from the selected skill.
+       */
+      await createSession({
+        skillOfferId: id,
 
-        await createSession({
-          skillOfferId: id,
-          learnerId: "u1",
-          scheduledDate:
-            date.trim(),
-          scheduledTime:
-            time.trim(),
-          duration:
-            numericDuration,
-          creditCost,
-          objective:
-            objective.trim(),
-          mode,
-        });
+        learnerId:
+          currentUser.id,
 
-        const successMessage =
-          "Your session request has been submitted successfully.";
+        scheduledDate:
+          date.trim(),
 
-        if (
-          Platform.OS === "web"
-        ) {
-          window.alert(
-            successMessage
-          );
+        scheduledTime:
+          time.trim(),
 
-          router.back();
+        duration:
+          numericDuration,
 
-          return;
-        }
+        creditCost,
 
+        objective:
+          objective.trim(),
+
+        mode,
+      });
+
+
+      const successMessage =
+        "Your session request has been submitted.";
+
+
+      if (Platform.OS === "web") {
+        window.alert(successMessage);
+
+        router.replace(
+          "/(tabs)/(sessions)" as any
+        );
+      } else {
         Alert.alert(
           "Request Submitted",
           successMessage,
           [
             {
-              text: "OK",
+              text: "View Sessions",
               onPress: () =>
-                router.back(),
+                router.replace(
+                  "/(tabs)/(sessions)" as any
+                ),
             },
           ]
         );
-      } catch (error) {
-        console.error(
-          "Session request failed:",
-          error
-        );
-
-        setSubmitError(
-          "Unable to submit your session request. Please try again."
-        );
-      } finally {
-        setIsSubmitting(false);
       }
-    };
 
-  if (!id) {
+    } catch (error) {
+      console.error(
+        "Create session error:",
+        error
+      );
+
+
+      setSubmitError(
+        "Failed to create the session request. Please try again."
+      );
+
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  /*
+   * Loading state
+   */
+  if (
+    selectedSkillLoading ||
+    currentUserLoading
+  ) {
     return (
-      <SafeAreaView
-        style={
-          styles.stateScreen
-        }
-      >
-        <Ionicons
-          name="alert-circle-outline"
-          size={46}
-          color={COLORS.danger}
-        />
-
-        <Text
-          style={styles.stateTitle}
-        >
-          Invalid skill
-        </Text>
-
-        <Text
-          style={
-            styles.stateMessage
-          }
-        >
-          No valid skill ID was
-          provided.
-        </Text>
-
-        <Pressable
-          style={
-            styles.backButton
-          }
-          onPress={() =>
-            router.back()
-          }
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Text
-            style={
-              styles.backButtonText
-            }
-          >
-            Go Back
-          </Text>
-        </Pressable>
-      </SafeAreaView>
-    );
-  }
-
-  if (selectedSkillLoading) {
-    return (
-      <SafeAreaView
-        style={
-          styles.stateScreen
-        }
-      >
+      <View style={styles.center}>
         <ActivityIndicator
           size="large"
           color={COLORS.primary}
         />
 
-        <Text
-          style={styles.stateTitle}
-        >
-          Loading skill...
+        <Text style={styles.loadingText}>
+          Loading request details...
         </Text>
-
-        <Text
-          style={
-            styles.stateMessage
-          }
-        >
-          Please wait while
-          LearnLoop prepares your
-          session request.
-        </Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  if (selectedSkillError) {
+
+  /*
+   * Skill loading error
+   */
+  if (
+    selectedSkillError ||
+    !selectedSkill
+  ) {
     return (
-      <SafeAreaView
-        style={
-          styles.stateScreen
-        }
-      >
-        <Ionicons
-          name="alert-circle-outline"
-          size={46}
-          color={COLORS.danger}
+      <>
+        <Stack.Screen
+          options={{
+            title: "Request Session",
+          }}
         />
 
-        <Text
-          style={styles.stateTitle}
-        >
-          Unable to load skill
-        </Text>
+        <View style={styles.center}>
 
-        <Text
-          style={
-            styles.stateMessage
-          }
-        >
-          {selectedSkillError}
-        </Text>
+          <Text style={styles.errorTitle}>
+            Unable to load skill
+          </Text>
 
-        <Pressable
-          style={
-            styles.retryButton
-          }
-          onPress={() => {
-            void loadSkillById(
-              id
-            );
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading skill"
-        >
-          <Ionicons
-            name="refresh-outline"
-            size={18}
-            color={COLORS.white}
-          />
+          <Text style={styles.errorText}>
+            {selectedSkillError ??
+              "The selected skill could not be found."}
+          </Text>
 
-          <Text
-            style={
-              styles.retryButtonText
+          <Pressable
+            style={styles.backButton}
+            onPress={() =>
+              router.back()
             }
           >
-            Try Again
-          </Text>
-        </Pressable>
-      </SafeAreaView>
+            <Text
+              style={styles.backButtonText}
+            >
+              Go Back
+            </Text>
+          </Pressable>
+
+        </View>
+      </>
     );
   }
 
-  if (!selectedSkill) {
+
+  /*
+   * Current-user loading error
+   */
+  if (
+    currentUserError ||
+    !currentUser
+  ) {
     return (
-      <SafeAreaView
-        style={
-          styles.stateScreen
-        }
-      >
-        <Ionicons
-          name="school-outline"
-          size={46}
-          color={
-            COLORS.textLight
-          }
+      <>
+        <Stack.Screen
+          options={{
+            title: "Request Session",
+          }}
         />
 
-        <Text
-          style={styles.stateTitle}
-        >
-          Skill not found
+        <View style={styles.center}>
+
+          <Text style={styles.errorTitle}>
+            Unable to identify user
+          </Text>
+
+          <Text style={styles.errorText}>
+            {currentUserError ??
+              "Your user information could not be loaded."}
+          </Text>
+
+          <Pressable
+            style={styles.backButton}
+            onPress={() =>
+              router.back()
+            }
+          >
+            <Text
+              style={styles.backButtonText}
+            >
+              Go Back
+            </Text>
+          </Pressable>
+
+        </View>
+      </>
+    );
+  }
+
+
+  /*
+   * Prevent requesting your own skill.
+   */
+  const isOwnSkill =
+    selectedSkill.mentorId ===
+    currentUser.id;
+
+
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          title: "Request Session",
+        }}
+      />
+
+
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={
+          styles.content
+        }
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* PAGE HEADER */}
+
+        <Text style={styles.heading}>
+          Request a Session
         </Text>
 
-        <Text
-          style={
-            styles.stateMessage
-          }
-        >
-          The selected skill could
-          not be found.
+        <Text style={styles.description}>
+          Book a learning session with this
+          mentor.
         </Text>
+
+
+        {/* SKILL SUMMARY */}
+
+        <View style={styles.skillCard}>
+
+          <Text style={styles.skillTitle}>
+            {selectedSkill.title}
+          </Text>
+
+          <Text style={styles.skillCategory}>
+            {selectedSkill.category}
+          </Text>
+
+          <Text style={styles.skillDescription}>
+            {selectedSkill.description}
+          </Text>
+
+          <View style={styles.skillMetaRow}>
+
+            <Text style={styles.skillMeta}>
+              {selectedSkill.duration} min
+            </Text>
+
+            <Text style={styles.skillMeta}>
+              {selectedSkill.mode}
+            </Text>
+
+            <Text style={styles.skillMeta}>
+              {selectedSkill.level}
+            </Text>
+
+          </View>
+
+        </View>
+
+
+        {/* OWN SKILL WARNING */}
+
+        {isOwnSkill && (
+          <View style={styles.warningBox}>
+
+            <Text style={styles.warningTitle}>
+              This is your skill
+            </Text>
+
+            <Text style={styles.warningText}>
+              You cannot request a learning
+              session from your own skill offer.
+            </Text>
+
+          </View>
+        )}
+
+
+        {/* DATE */}
+
+        <View style={styles.formSection}>
+
+          <Text style={styles.label}>
+            Session Date
+          </Text>
+
+          <TextInput
+            value={date}
+            onChangeText={setDate}
+            placeholder="e.g. 2026-09-24"
+            placeholderTextColor="#9CA3AF"
+            style={styles.input}
+            editable={
+              !isSubmitting &&
+              !isOwnSkill
+            }
+          />
+
+          <Text style={styles.helperText}>
+            Use YYYY-MM-DD format.
+          </Text>
+
+        </View>
+
+
+        {/* TIME */}
+
+        <View style={styles.formSection}>
+
+          <Text style={styles.label}>
+            Session Time
+          </Text>
+
+          <TextInput
+            value={time}
+            onChangeText={setTime}
+            placeholder="e.g. 3:00 PM"
+            placeholderTextColor="#9CA3AF"
+            style={styles.input}
+            editable={
+              !isSubmitting &&
+              !isOwnSkill
+            }
+          />
+
+          <Text style={styles.helperText}>
+            Enter the preferred starting time.
+          </Text>
+
+        </View>
+
+
+        {/* DURATION */}
+
+        <View style={styles.formSection}>
+
+          <Text style={styles.label}>
+            Duration
+          </Text>
+
+          <TextInput
+            value={duration}
+            onChangeText={setDuration}
+            placeholder="e.g. 60"
+            placeholderTextColor="#9CA3AF"
+            keyboardType="numeric"
+            style={styles.input}
+            editable={
+              !isSubmitting &&
+              !isOwnSkill
+            }
+          />
+
+          <Text style={styles.helperText}>
+            Duration is measured in minutes.
+          </Text>
+
+        </View>
+
+
+        {/* CREDIT COST */}
+
+        <View style={styles.creditCard}>
+
+          <View>
+            <Text style={styles.creditLabel}>
+              Credit Cost
+            </Text>
+
+            <Text style={styles.creditDescription}>
+              Based on the requested duration.
+            </Text>
+          </View>
+
+          <Text style={styles.creditValue}>
+            {creditCost}{" "}
+            {creditCost === 1
+              ? "credit"
+              : "credits"}
+          </Text>
+
+        </View>
+
+
+        {/* MODE */}
+
+        <View style={styles.formSection}>
+
+          <Text style={styles.label}>
+            Session Mode
+          </Text>
+
+          <View style={styles.modeRow}>
+
+            <Pressable
+              style={[
+                styles.modeButton,
+                mode === "Online" &&
+                  styles.activeModeButton,
+              ]}
+              disabled={
+                isSubmitting ||
+                isOwnSkill
+              }
+              onPress={() =>
+                setMode("Online")
+              }
+            >
+
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  mode === "Online" &&
+                    styles.activeModeButtonText,
+                ]}
+              >
+                Online
+              </Text>
+
+            </Pressable>
+
+
+            <Pressable
+              style={[
+                styles.modeButton,
+                mode === "In Person" &&
+                  styles.activeModeButton,
+              ]}
+              disabled={
+                isSubmitting ||
+                isOwnSkill
+              }
+              onPress={() =>
+                setMode("In Person")
+              }
+            >
+
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  mode === "In Person" &&
+                    styles.activeModeButtonText,
+                ]}
+              >
+                In Person
+              </Text>
+
+            </Pressable>
+
+          </View>
+
+        </View>
+
+
+        {/* OBJECTIVE */}
+
+        <View style={styles.formSection}>
+
+          <Text style={styles.label}>
+            Learning Objective
+          </Text>
+
+          <TextInput
+            value={objective}
+            onChangeText={setObjective}
+            placeholder="What do you want to learn from this session?"
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={5}
+            textAlignVertical="top"
+            style={[
+              styles.input,
+              styles.objectiveInput,
+            ]}
+            editable={
+              !isSubmitting &&
+              !isOwnSkill
+            }
+          />
+
+        </View>
+
+
+        {/* SUBMIT ERROR */}
+
+        {submitError ? (
+          <View style={styles.errorBox}>
+
+            <Text style={styles.errorBoxText}>
+              {submitError}
+            </Text>
+
+          </View>
+        ) : null}
+
+
+        {/* SUBMIT */}
 
         <Pressable
-          style={
-            styles.backButton
+          style={[
+            styles.submitButton,
+            (isSubmitting ||
+              isOwnSkill) &&
+              styles.disabledButton,
+          ]}
+          disabled={
+            isSubmitting ||
+            isOwnSkill
           }
+          onPress={
+            submitRequest
+          }
+        >
+
+          {isSubmitting ? (
+            <ActivityIndicator
+              size="small"
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text
+              style={styles.submitButtonText}
+            >
+              Request Session
+            </Text>
+          )}
+
+        </Pressable>
+
+
+        {/* CANCEL */}
+
+        <Pressable
+          style={styles.cancelButton}
+          disabled={isSubmitting}
           onPress={() =>
             router.back()
           }
-          accessibilityRole="button"
-          accessibilityLabel="Go back to skill details"
         >
+
           <Text
-            style={
-              styles.backButtonText
-            }
+            style={styles.cancelButtonText}
           >
-            Go Back
+            Cancel
           </Text>
+
         </Pressable>
-      </SafeAreaView>
-    );
-  }
 
-  const skill =
-    selectedSkill;
-
-  const creditCost =
-    Number(duration) / 60;
-
-  const availableModes: (
-    | "Online"
-    | "In Person"
-  )[] =
-    skill.mode === "Both"
-      ? [
-          "Online",
-          "In Person",
-        ]
-      : [skill.mode];
-
-  return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={
-        styles.content
-      }
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={
-        false
-      }
-    >
-      <Text
-        style={styles.heading}
-      >
-        Request Session
-      </Text>
-
-      <Text
-        style={styles.skillTitle}
-      >
-        {skill.title}
-      </Text>
-
-      <View
-        style={
-          styles.skillSummary
-        }
-      >
-        <View
-          style={
-            styles.skillSummaryRow
-          }
-        >
-          <Ionicons
-            name="time-outline"
-            size={17}
-            color={COLORS.primary}
-          />
-
-          <Text
-            style={
-              styles.skillSummaryText
-            }
-          >
-            Standard duration:{" "}
-            {skill.duration} minutes
-          </Text>
-        </View>
-
-        <View
-          style={
-            styles.skillSummaryRow
-          }
-        >
-          <Ionicons
-            name="location-outline"
-            size={17}
-            color={COLORS.primary}
-          />
-
-          <Text
-            style={
-              styles.skillSummaryText
-            }
-          >
-            Mode: {skill.mode}
-          </Text>
-        </View>
-      </View>
-
-      <Text
-        style={styles.label}
-      >
-        Preferred Date
-      </Text>
-
-      {Platform.OS ===
-      "web" ? (
-        <View
-          style={[
-            styles.webDateContainer,
-            errors.date
-              ? styles.inputError
-              : null,
-          ]}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={19}
-            color={COLORS.primary}
-          />
-
-          {React.createElement(
-            "input",
-            {
-              type: "date",
-              value: date,
-              min: getTodayString(),
-              onChange:
-                handleWebDateChange,
-              "aria-label":
-                "Preferred session date",
-              style: {
-                flex: 1,
-                border: "none",
-                outline: "none",
-                backgroundColor:
-                  "transparent",
-                fontSize: 14,
-                color:
-                  COLORS.textPrimary,
-                fontFamily:
-                  "inherit",
-                width: "100%",
-              },
-            }
-          )}
-        </View>
-      ) : (
-        <>
-          <Pressable
-            style={[
-              styles.dateButton,
-              errors.date
-                ? styles.inputError
-                : null,
-            ]}
-            onPress={() =>
-              setShowDatePicker(
-                true
-              )
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Select preferred session date"
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={19}
-              color={
-                COLORS.primary
-              }
-            />
-
-            <Text
-              style={[
-                styles.dateButtonText,
-                !date
-                  ? styles.datePlaceholder
-                  : null,
-              ]}
-            >
-              {date ||
-                "Select a date"}
-            </Text>
-          </Pressable>
-
-          {showDatePicker ? (
-            <DateTimePicker
-              value={
-                selectedDate ??
-                getToday()
-              }
-              mode="date"
-              display="default"
-              minimumDate={
-                getToday()
-              }
-              onChange={
-                handleNativeDateChange
-              }
-            />
-          ) : null}
-        </>
-      )}
-
-      {errors.date ? (
-        <Text
-          style={styles.errorText}
-        >
-          {errors.date}
-        </Text>
-      ) : null}
-
-      <Text
-        style={styles.label}
-      >
-        Preferred Time
-      </Text>
-
-      <TextInput
-        style={[
-          styles.input,
-          errors.time
-            ? styles.inputError
-            : null,
-        ]}
-        value={time}
-        onChangeText={
-          handleTimeChange
-        }
-        placeholder="e.g. 3:00 PM"
-        placeholderTextColor={
-          COLORS.textLight
-        }
-        accessibilityLabel="Preferred session time"
-      />
-
-      {errors.time ? (
-        <Text
-          style={styles.errorText}
-        >
-          {errors.time}
-        </Text>
-      ) : null}
-
-      <Text
-        style={styles.label}
-      >
-        Duration
-      </Text>
-
-      <View
-        style={styles.optionRow}
-      >
-        {[
-          "30",
-          "60",
-          "90",
-        ].map((item) => (
-          <Pressable
-            key={item}
-            style={[
-              styles.optionButton,
-              duration === item
-                ? styles.optionButtonActive
-                : null,
-            ]}
-            onPress={() =>
-              setDuration(item)
-            }
-            accessibilityRole="button"
-            accessibilityLabel={`Select ${item} minute session`}
-            accessibilityState={{
-              selected:
-                duration ===
-                item,
-            }}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                duration ===
-                item
-                  ? styles.optionTextActive
-                  : null,
-              ]}
-            >
-              {item} min
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text
-        style={styles.label}
-      >
-        Session Mode
-      </Text>
-
-      <View
-        style={styles.optionRow}
-      >
-        {availableModes.map(
-          (item) => (
-            <Pressable
-              key={item}
-              style={[
-                styles.optionButton,
-                mode === item
-                  ? styles.optionButtonActive
-                  : null,
-              ]}
-              onPress={() =>
-                setMode(item)
-              }
-              accessibilityRole="button"
-              accessibilityLabel={`Select ${item} session mode`}
-              accessibilityState={{
-                selected:
-                  mode === item,
-              }}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  mode === item
-                    ? styles.optionTextActive
-                    : null,
-                ]}
-              >
-                {item}
-              </Text>
-            </Pressable>
-          )
-        )}
-      </View>
-
-      <Text
-        style={styles.label}
-      >
-        Learning Objective
-      </Text>
-
-      <TextInput
-        style={[
-          styles.input,
-          styles.multilineInput,
-          errors.objective
-            ? styles.inputError
-            : null,
-        ]}
-        value={objective}
-        onChangeText={
-          handleObjectiveChange
-        }
-        placeholder="What would you like to learn in this session?"
-        placeholderTextColor={
-          COLORS.textLight
-        }
-        multiline
-        maxLength={200}
-        textAlignVertical="top"
-        accessibilityLabel="Learning objective"
-      />
-
-      <Text
-        style={styles.counter}
-      >
-        {objective.length} / 200
-        characters
-      </Text>
-
-      {errors.objective ? (
-        <Text
-          style={styles.errorText}
-        >
-          {errors.objective}
-        </Text>
-      ) : null}
-
-      <View
-        style={
-          styles.summaryCard
-        }
-      >
-        <Text
-          style={
-            styles.summaryTitle
-          }
-        >
-          Request Summary
-        </Text>
-
-        <Text
-          style={
-            styles.summaryText
-          }
-        >
-          Skill: {skill.title}
-        </Text>
-
-        <Text
-          style={
-            styles.summaryText
-          }
-        >
-          Date:{" "}
-          {date ||
-            "Not selected"}
-        </Text>
-
-        <Text
-          style={
-            styles.summaryText
-          }
-        >
-          Duration: {duration}{" "}
-          minutes
-        </Text>
-
-        <Text
-          style={
-            styles.summaryText
-          }
-        >
-          Mode: {mode}
-        </Text>
-
-        <Text
-          style={
-            styles.summaryText
-          }
-        >
-          Credit cost:{" "}
-          {creditCost}{" "}
-          {creditCost === 1
-            ? "credit"
-            : "credits"}
-        </Text>
-      </View>
-
-      {submitError ? (
-        <View
-          style={
-            styles.submitErrorCard
-          }
-        >
-          <Ionicons
-            name="alert-circle-outline"
-            size={18}
-            color={COLORS.danger}
-          />
-
-          <Text
-            style={
-              styles.submitErrorText
-            }
-          >
-            {submitError}
-          </Text>
-        </View>
-      ) : null}
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.submitButton,
-          isSubmitting
-            ? styles.submitButtonDisabled
-            : null,
-          pressed &&
-          !isSubmitting
-            ? styles.submitButtonPressed
-            : null,
-        ]}
-        onPress={() => {
-          void handleSubmit();
-        }}
-        disabled={isSubmitting}
-        accessibilityRole="button"
-        accessibilityLabel="Submit session request"
-        accessibilityState={{
-          disabled:
-            isSubmitting,
-        }}
-      >
-        {isSubmitting ? (
-          <>
-            <ActivityIndicator
-              size="small"
-              color={COLORS.white}
-            />
-
-            <Text
-              style={
-                styles.submitButtonText
-              }
-            >
-              Submitting...
-            </Text>
-          </>
-        ) : (
-          <>
-            <Ionicons
-              name="send-outline"
-              size={18}
-              color={COLORS.white}
-            />
-
-            <Text
-              style={
-                styles.submitButtonText
-              }
-            >
-              Submit Request
-            </Text>
-          </>
-        )}
-      </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
-const styles =
-  StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor:
-        COLORS.background,
-    },
 
-    content: {
-      padding: SPACING.lg,
-      paddingBottom:
-        SPACING.xl,
-    },
+const styles = StyleSheet.create({
 
-    heading: {
-      color:
-        COLORS.textPrimary,
-      fontSize: 24,
-      fontWeight: "800",
-      marginBottom:
-        SPACING.xs,
-    },
+  screen: {
+    flex: 1,
+    backgroundColor: "#F7F8FC",
+  },
 
-    skillTitle: {
-      color: COLORS.primary,
-      fontSize: 14,
-      fontWeight: "600",
-      marginBottom:
-        SPACING.md,
-    },
+  content: {
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+    padding: 16,
+    paddingBottom: 50,
+  },
 
-    skillSummary: {
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.md,
-      padding: SPACING.md,
-      marginBottom:
-        SPACING.lg,
-      gap: SPACING.sm,
-    },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F8FC",
+    padding: 24,
+  },
 
-    skillSummaryRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-    },
+  loadingText: {
+    color: "#6B7280",
+    fontSize: 14,
+    marginTop: 12,
+  },
 
-    skillSummaryText: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 12,
-    },
+  heading: {
+    color: "#111827",
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
 
-    label: {
-      color:
-        COLORS.textPrimary,
-      fontSize: 13,
-      fontWeight: "600",
-      marginBottom:
-        SPACING.sm,
-    },
+  description: {
+    color: "#6B7280",
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 20,
+  },
 
-    input: {
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.md,
-      paddingHorizontal:
-        SPACING.md,
-      paddingVertical: 12,
-      color:
-        COLORS.textPrimary,
-      fontSize: 14,
-      marginBottom:
-        SPACING.xs,
-    },
+  skillCard: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
+  },
 
-    webDateContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.md,
-      paddingHorizontal:
-        SPACING.md,
-      minHeight: 48,
-      marginBottom:
-        SPACING.xs,
-    },
+  skillTitle: {
+    color: "#111827",
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
 
-    dateButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.md,
-      paddingHorizontal:
-        SPACING.md,
-      paddingVertical: 13,
-      marginBottom:
-        SPACING.xs,
-    },
+  skillCategory: {
+    color: "#635BFF",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
 
-    dateButtonText: {
-      color:
-        COLORS.textPrimary,
-      fontSize: 14,
-    },
+  skillDescription: {
+    color: "#6B7280",
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 14,
+  },
 
-    datePlaceholder: {
-      color:
-        COLORS.textLight,
-    },
+  skillMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
 
-    multilineInput: {
-      minHeight: 100,
-      textAlignVertical:
-        "top",
-    },
+  skillMeta: {
+    color: "#4B5563",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 12,
+    fontWeight: "600",
+  },
 
-    inputError: {
-      borderColor:
-        COLORS.danger,
-    },
+  warningBox: {
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+  },
 
-    errorText: {
-      color: COLORS.danger,
-      fontSize: 11,
-      marginBottom:
-        SPACING.md,
-    },
+  warningTitle: {
+    color: "#92400E",
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 5,
+  },
 
-    counter: {
-      color:
-        COLORS.textLight,
-      fontSize: 11,
-      textAlign: "right",
-      marginBottom:
-        SPACING.xs,
-    },
+  warningText: {
+    color: "#92400E",
+    fontSize: 13,
+    lineHeight: 19,
+  },
 
-    optionRow: {
-      flexDirection: "row",
-      gap: SPACING.sm,
-      marginBottom:
-        SPACING.lg,
-    },
+  formSection: {
+    marginBottom: 18,
+  },
 
-    optionButton: {
-      flex: 1,
-      alignItems: "center",
-      paddingVertical: 11,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.md,
-      backgroundColor:
-        COLORS.surface,
-    },
+  label: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
 
-    optionButtonActive: {
-      backgroundColor:
-        COLORS.primary,
-      borderColor:
-        COLORS.primary,
-    },
+  input: {
+    minHeight: 48,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    color: "#111827",
+    fontSize: 14,
+  },
 
-    optionText: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 12,
-      fontWeight: "600",
-    },
+  objectiveInput: {
+    minHeight: 120,
+    paddingTop: 14,
+  },
 
-    optionTextActive: {
-      color: COLORS.white,
-    },
+  helperText: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 6,
+  },
 
-    summaryCard: {
-      backgroundColor:
-        COLORS.primaryLight,
-      borderRadius:
-        RADIUS.md,
-      padding: SPACING.md,
-      marginVertical:
-        SPACING.lg,
-    },
+  creditCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#EEF2FF",
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 18,
+  },
 
-    summaryTitle: {
-      color:
-        COLORS.primaryDark,
-      fontSize: 14,
-      fontWeight: "700",
-      marginBottom:
-        SPACING.sm,
-    },
+  creditLabel: {
+    color: "#3730A3",
+    fontSize: 14,
+    fontWeight: "800",
+  },
 
-    summaryText: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 12,
-      marginBottom:
-        SPACING.xs,
-    },
+  creditDescription: {
+    color: "#6366F1",
+    fontSize: 12,
+    marginTop: 3,
+  },
 
-    submitErrorCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.danger,
-      borderRadius:
-        RADIUS.md,
-      padding: SPACING.md,
-      marginBottom:
-        SPACING.md,
-    },
+  creditValue: {
+    color: "#4338CA",
+    fontSize: 18,
+    fontWeight: "800",
+  },
 
-    submitErrorText: {
-      flex: 1,
-      color: COLORS.danger,
-      fontSize: 12,
-      lineHeight: 18,
-    },
+  modeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
 
-    submitButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "center",
-      gap: SPACING.sm,
-      backgroundColor:
-        COLORS.primary,
-      borderRadius:
-        RADIUS.md,
-      paddingVertical: 15,
-    },
+  modeButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 46,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+  },
 
-    submitButtonPressed: {
-      opacity: 0.8,
-    },
+  activeModeButton: {
+    backgroundColor: "#635BFF",
+    borderColor: "#635BFF",
+  },
 
-    submitButtonDisabled: {
-      opacity: 0.65,
-    },
+  modeButtonText: {
+    color: "#6B7280",
+    fontSize: 13,
+    fontWeight: "700",
+  },
 
-    submitButtonText: {
-      color: COLORS.white,
-      fontSize: 15,
-      fontWeight: "700",
-    },
+  activeModeButtonText: {
+    color: "#FFFFFF",
+  },
 
-    stateScreen: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent:
-        "center",
-      backgroundColor:
-        COLORS.background,
-      padding: SPACING.xl,
-    },
+  errorBox: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    borderRadius: 12,
+    padding: 13,
+    marginBottom: 16,
+  },
 
-    stateTitle: {
-      color:
-        COLORS.textPrimary,
-      fontSize: 18,
-      fontWeight: "700",
-      marginTop:
-        SPACING.md,
-      textAlign: "center",
-    },
+  errorBoxText: {
+    color: "#991B1B",
+    fontSize: 13,
+    lineHeight: 19,
+  },
 
-    stateMessage: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 13,
-      lineHeight: 20,
-      textAlign: "center",
-      marginTop:
-        SPACING.sm,
-    },
+  errorTitle: {
+    color: "#111827",
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 8,
+    textAlign: "center",
+  },
 
-    retryButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "center",
-      gap: SPACING.sm,
-      backgroundColor:
-        COLORS.primary,
-      borderRadius:
-        RADIUS.md,
-      paddingHorizontal:
-        SPACING.lg,
-      paddingVertical: 12,
-      marginTop:
-        SPACING.lg,
-    },
+  errorText: {
+    color: "#6B7280",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    marginBottom: 20,
+  },
 
-    retryButtonText: {
-      color: COLORS.white,
-      fontSize: 13,
-      fontWeight: "700",
-    },
+  backButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
 
-    backButton: {
-      backgroundColor:
-        COLORS.primaryLight,
-      borderRadius:
-        RADIUS.md,
-      paddingHorizontal:
-        SPACING.lg,
-      paddingVertical: 12,
-      marginTop:
-        SPACING.lg,
-    },
+  backButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
 
-    backButtonText: {
-      color:
-        COLORS.primary,
-      fontSize: 13,
-      fontWeight: "700",
-    },
-  });
+  submitButton: {
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+
+  disabledButton: {
+    opacity: 0.5,
+  },
+
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  cancelButton: {
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+
+  cancelButtonText: {
+    color: "#6B7280",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+});

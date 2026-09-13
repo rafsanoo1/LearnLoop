@@ -2,35 +2,40 @@ const express = require("express");
 
 const {
   getSessions,
-  createSession,
   getSessionById,
+  createSession,
   updateSession,
 } = require("../controllers/sessionController");
 
 const router = express.Router();
 
-// GET all sessions
+
+// GET ALL SESSIONS
 router.get(
   "/",
   getSessions
 );
 
-// GET single session
+
+// GET SINGLE SESSION
 router.get(
   "/:id",
   getSessionById
 );
 
-// CREATE session
+
+// CREATE SESSION
 router.post(
   "/",
   createSession
 );
 
-// UPDATE session
+
+// UPDATE SESSION
 router.patch(
   "/:id",
   updateSession
 );
+
 
 module.exports = router;

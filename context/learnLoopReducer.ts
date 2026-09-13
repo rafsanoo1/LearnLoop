@@ -13,6 +13,10 @@ export interface LearnLoopState {
   users: Record<string, AppUser>;
   userLoading: boolean;
   userError: string | null;
+
+  currentUser: AppUser | null;
+  currentUserLoading: boolean;
+  currentUserError: string | null;
 }
 
 export const initialLearnLoopState: LearnLoopState = {
@@ -27,6 +31,10 @@ export const initialLearnLoopState: LearnLoopState = {
   users: {},
   userLoading: false,
   userError: null,
+
+  currentUser: null,
+  currentUserLoading: false,
+  currentUserError: null,
 };
 
 export type LearnLoopAction =
@@ -64,6 +72,17 @@ export type LearnLoopAction =
     }
   | {
       type: "SET_USER_ERROR";
+      payload: string;
+    }
+  | {
+      type: "SET_CURRENT_USER_LOADING";
+    }
+  | {
+      type: "SET_CURRENT_USER_SUCCESS";
+      payload: AppUser;
+    }
+  | {
+      type: "SET_CURRENT_USER_ERROR";
       payload: string;
     };
 
@@ -148,6 +167,33 @@ export const learnLoopReducer = (
         ...state,
         userLoading: false,
         userError: action.payload,
+      };
+
+    case "SET_CURRENT_USER_LOADING":
+      return {
+        ...state,
+        currentUserLoading: true,
+        currentUserError: null,
+      };
+
+    case "SET_CURRENT_USER_SUCCESS":
+      return {
+        ...state,
+        currentUser: action.payload,
+        users: {
+          ...state.users,
+          [action.payload.id]: action.payload,
+        },
+        currentUserLoading: false,
+        currentUserError: null,
+      };
+
+    case "SET_CURRENT_USER_ERROR":
+      return {
+        ...state,
+        currentUser: null,
+        currentUserLoading: false,
+        currentUserError: action.payload,
       };
 
     default:

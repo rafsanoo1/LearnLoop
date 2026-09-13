@@ -1,24 +1,27 @@
 import {
-    createContext,
-    ReactNode,
-    useContext,
-    useReducer,
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useReducer,
 } from "react";
 
 import {
-    getSkillById as fetchSkillById,
-    getSkills as fetchSkills,
+  getSkillById as fetchSkillById,
+  getSkills as fetchSkills,
 } from "@/services/skillService";
 
 import {
-    getUserById as fetchUserById,
+  getUserById as fetchUserById,
 } from "@/services/userService";
 
 import {
-    initialLearnLoopState,
-    learnLoopReducer,
-    LearnLoopState,
+  initialLearnLoopState,
+  learnLoopReducer,
+  LearnLoopState,
 } from "@/context/learnLoopReducer";
+
+const CURRENT_USER_ID = "u1";
 
 interface LearnLoopContextValue {
   state: LearnLoopState;
@@ -34,6 +37,8 @@ interface LearnLoopContextValue {
   loadUserById: (
     id: string
   ) => Promise<void>;
+
+  loadCurrentUser: () => Promise<void>;
 }
 
 const LearnLoopContext =
@@ -150,6 +155,45 @@ export function LearnLoopProvider({
     }
   };
 
+  const loadCurrentUser = async () => {
+    if (state.currentUser) {
+      return;
+    }
+
+    dispatch({
+      type: "SET_CURRENT_USER_LOADING",
+    });
+
+    try {
+      const user =
+        await fetchUserById(
+          CURRENT_USER_ID
+        );
+
+      dispatch({
+        type:
+          "SET_CURRENT_USER_SUCCESS",
+        payload: user,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to load current user:",
+        error
+      );
+
+      dispatch({
+        type:
+          "SET_CURRENT_USER_ERROR",
+        payload:
+          "Unable to load current user information.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    void loadCurrentUser();
+  }, []);
+
   return (
     <LearnLoopContext.Provider
       value={{
@@ -158,6 +202,7 @@ export function LearnLoopProvider({
         loadSkillById,
         clearSelectedSkill,
         loadUserById,
+        loadCurrentUser,
       }}
     >
       {children}
