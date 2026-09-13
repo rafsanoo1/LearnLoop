@@ -5,14 +5,20 @@ import {
   SPACING,
 } from "@/constants/learnloop-theme";
 
-import { getSkills } from "@/services/skillService";
+import {
+  deleteSkill,
+  getSkills,
+} from "@/services/skillService";
+
 import { SkillOffer } from "@/types/learnloop";
 
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 
 import {
+  Alert,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -115,6 +121,7 @@ export default function TeachScreen() {
 
 
 
+
   useFocusEffect(
 
     useCallback(()=>{
@@ -127,6 +134,8 @@ export default function TeachScreen() {
     },[])
 
   );
+
+
 
 
 
@@ -162,6 +171,153 @@ export default function TeachScreen() {
 
 
     });
+
+
+  };
+
+
+
+
+  const handleDelete = (
+
+    offer:SkillOffer
+
+  )=>{
+
+
+    const performDelete = async()=>{
+
+
+      try{
+
+
+        await deleteSkill(
+
+          offer.id
+
+        );
+
+
+
+        setOffers(
+
+          currentOffers =>
+
+            currentOffers.filter(
+
+              item =>
+
+                item.id !== offer.id
+
+            )
+
+        );
+
+
+      }
+
+      catch(error){
+
+
+        console.log(
+
+          "Delete skill error:",
+
+          error
+
+        );
+
+
+
+        if(Platform.OS==="web"){
+
+
+          window.alert(
+
+            "Failed to delete skill offer."
+
+          );
+
+
+        }
+
+        else{
+
+
+          Alert.alert(
+
+            "Error",
+
+            "Failed to delete skill offer."
+
+          );
+
+
+        }
+
+
+      }
+
+
+    };
+
+
+
+    if(Platform.OS==="web"){
+
+
+      const confirmed =
+
+        window.confirm(
+
+          `Are you sure you want to delete "${offer.title}"?`
+
+        );
+
+
+
+      if(confirmed){
+
+        performDelete();
+
+      }
+
+
+      return;
+
+    }
+
+
+
+    Alert.alert(
+
+      "Delete Skill Offer",
+
+      `Are you sure you want to delete "${offer.title}"?`,
+
+      [
+
+        {
+
+          text:"Cancel",
+
+          style:"cancel",
+
+        },
+
+        {
+
+          text:"Delete",
+
+          style:"destructive",
+
+          onPress:performDelete,
+
+        },
+
+      ]
+
+    );
 
 
   };
@@ -302,6 +458,8 @@ export default function TeachScreen() {
 
             onEdit={handleEdit}
 
+            onDelete={handleDelete}
+
           />
 
 
@@ -411,6 +569,9 @@ export default function TeachScreen() {
 
 
 
+
+
+
             <Pressable
 
 
@@ -464,6 +625,9 @@ export default function TeachScreen() {
 
 
             </Pressable>
+
+
+
 
 
 
@@ -535,6 +699,9 @@ export default function TeachScreen() {
 
 
 
+
+
+
             <Text style={styles.count}>
 
               {offers.length} offers
@@ -593,15 +760,22 @@ export default function TeachScreen() {
 
 
 
+
+
+
+
 const styles = StyleSheet.create({
 
 
 
 screen:{
 
+
 flex:1,
 
+
 backgroundColor:COLORS.background,
+
 
 },
 
@@ -609,9 +783,12 @@ backgroundColor:COLORS.background,
 
 list:{
 
+
 padding:SPACING.md,
 
+
 paddingBottom:SPACING.xl,
+
 
 },
 
@@ -619,7 +796,9 @@ paddingBottom:SPACING.xl,
 
 header:{
 
+
 marginBottom:SPACING.md,
+
 
 },
 
@@ -627,11 +806,15 @@ marginBottom:SPACING.md,
 
 title:{
 
+
 fontSize:26,
+
 
 fontWeight:"800",
 
+
 color:COLORS.textPrimary,
+
 
 },
 
@@ -639,9 +822,12 @@ color:COLORS.textPrimary,
 
 subtitle:{
 
+
 marginBottom:20,
 
+
 color:COLORS.textSecondary,
+
 
 },
 
@@ -649,21 +835,30 @@ color:COLORS.textSecondary,
 
 createButton:{
 
+
 backgroundColor:COLORS.primary,
+
 
 padding:14,
 
+
 borderRadius:RADIUS.md,
+
 
 flexDirection:"row",
 
+
 justifyContent:"center",
+
 
 alignItems:"center",
 
+
 gap:8,
 
+
 marginBottom:12,
+
 
 },
 
@@ -671,9 +866,12 @@ marginBottom:12,
 
 createText:{
 
+
 color:COLORS.white,
 
+
 fontWeight:"700",
+
 
 },
 
@@ -683,25 +881,36 @@ fontWeight:"700",
 
 secondaryButton:{
 
+
 borderWidth:1,
+
 
 borderColor:COLORS.primary,
 
+
 backgroundColor:COLORS.primaryLight,
+
 
 padding:13,
 
+
 borderRadius:RADIUS.md,
+
 
 flexDirection:"row",
 
+
 justifyContent:"center",
+
 
 alignItems:"center",
 
+
 gap:8,
 
+
 marginBottom:12,
+
 
 },
 
@@ -710,9 +919,12 @@ marginBottom:12,
 
 secondaryText:{
 
+
 color:COLORS.primary,
 
+
 fontWeight:"700",
+
 
 },
 
@@ -721,13 +933,18 @@ fontWeight:"700",
 
 count:{
 
+
 fontSize:17,
+
 
 fontWeight:"700",
 
+
 marginTop:10,
 
+
 color:COLORS.textPrimary,
+
 
 },
 
@@ -736,9 +953,12 @@ color:COLORS.textPrimary,
 
 empty:{
 
+
 alignItems:"center",
 
+
 padding:40,
+
 
 },
 
@@ -747,13 +967,18 @@ padding:40,
 
 center:{
 
+
 flex:1,
+
 
 justifyContent:"center",
 
+
 alignItems:"center",
 
+
 padding:30,
+
 
 },
 
@@ -762,11 +987,15 @@ padding:30,
 
 messageText:{
 
+
 fontSize:16,
+
 
 color:COLORS.textSecondary,
 
+
 textAlign:"center",
+
 
 },
 
@@ -775,15 +1004,21 @@ textAlign:"center",
 
 retryButton:{
 
+
 marginTop:20,
+
 
 backgroundColor:COLORS.primary,
 
+
 paddingHorizontal:25,
+
 
 paddingVertical:12,
 
+
 borderRadius:RADIUS.md,
+
 
 },
 
@@ -792,9 +1027,12 @@ borderRadius:RADIUS.md,
 
 retryText:{
 
+
 color:COLORS.white,
 
+
 fontWeight:"700",
+
 
 },
 

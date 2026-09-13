@@ -1,7 +1,20 @@
-import { COLORS, RADIUS, SPACING } from "@/constants/learnloop-theme";
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+} from "@/constants/learnloop-theme";
+
 import { SkillOffer } from "@/types/learnloop";
+
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
 
 
 interface OfferCardProps {
@@ -9,6 +22,8 @@ interface OfferCardProps {
   offer: SkillOffer;
 
   onEdit: (offer: SkillOffer) => void;
+
+  onDelete: (offer: SkillOffer) => void;
 
 }
 
@@ -19,6 +34,8 @@ export default function OfferCard({
   offer,
 
   onEdit,
+
+  onDelete,
 
 }: OfferCardProps) {
 
@@ -67,51 +84,86 @@ export default function OfferCard({
 
           </Text>
 
-
         </View>
 
 
 
+        <View style={styles.actions}>
 
 
-        <Pressable
+          <Pressable
 
-          style={styles.editButton}
+            style={styles.editButton}
 
-          onPress={() => onEdit(offer)}
+            onPress={() => onEdit(offer)}
 
-          accessibilityRole="button"
+            accessibilityRole="button"
 
-          accessibilityLabel={`Edit ${offer.title} skill offer`}
+            accessibilityLabel={`Edit ${offer.title} skill offer`}
 
-          accessibilityHint="Opens the edit screen for this skill offer"
+            accessibilityHint="Opens the edit screen for this skill offer"
 
-        >
+          >
 
-          <Ionicons
+            <Ionicons
 
-            name="create-outline"
+              name="create-outline"
 
-            size={18}
+              size={18}
 
-            color={COLORS.primary}
+              color={COLORS.primary}
 
-          />
-
-
-          <Text style={styles.editText}>
-
-            Edit
-
-          </Text>
+            />
 
 
-        </Pressable>
+            <Text style={styles.editText}>
+
+              Edit
+
+            </Text>
+
+          </Pressable>
+
+
+
+          <Pressable
+
+            style={styles.deleteButton}
+
+            onPress={() => onDelete(offer)}
+
+            accessibilityRole="button"
+
+            accessibilityLabel={`Delete ${offer.title} skill offer`}
+
+            accessibilityHint="Deletes this skill offer"
+
+          >
+
+            <Ionicons
+
+              name="trash-outline"
+
+              size={18}
+
+              color={COLORS.danger}
+
+            />
+
+
+            <Text style={styles.deleteText}>
+
+              Delete
+
+            </Text>
+
+          </Pressable>
+
+
+        </View>
 
 
       </View>
-
-
 
 
 
@@ -123,14 +175,11 @@ export default function OfferCard({
 
 
 
-
       <Text style={styles.category}>
 
         {offer.category}
 
       </Text>
-
-
 
 
 
@@ -148,14 +197,10 @@ export default function OfferCard({
 
 
 
-
-
-
       <View style={styles.infoRow}>
 
 
         <View style={styles.infoItem}>
-
 
           <Ionicons
 
@@ -167,22 +212,17 @@ export default function OfferCard({
 
           />
 
-
           <Text style={styles.infoText}>
 
             {offer.duration} min
 
           </Text>
 
-
         </View>
 
 
 
-
-
         <View style={styles.infoItem}>
-
 
           <Ionicons
 
@@ -194,22 +234,17 @@ export default function OfferCard({
 
           />
 
-
           <Text style={styles.infoText}>
 
             {offer.mode}
 
           </Text>
 
-
         </View>
 
 
 
-
-
         <View style={styles.infoItem}>
-
 
           <Ionicons
 
@@ -221,13 +256,11 @@ export default function OfferCard({
 
           />
 
-
           <Text style={styles.infoText}>
 
             {offer.level}
 
           </Text>
-
 
         </View>
 
@@ -237,20 +270,13 @@ export default function OfferCard({
 
     </View>
 
-
   );
-
 
 }
 
 
 
-
-
-
-
 const styles = StyleSheet.create({
-
 
   card: {
 
@@ -270,7 +296,13 @@ const styles = StyleSheet.create({
 
     shadowColor: COLORS.black,
 
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {
+
+      width: 0,
+
+      height: 1,
+
+    },
 
     shadowOpacity: 0.06,
 
@@ -288,6 +320,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     marginBottom: SPACING.sm,
+
+  },
+
+
+  actions: {
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: SPACING.md,
 
   },
 
@@ -354,6 +397,28 @@ const styles = StyleSheet.create({
   editText: {
 
     color: COLORS.primary,
+
+    fontSize: 12,
+
+    fontWeight: "600",
+
+  },
+
+
+  deleteButton: {
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 4,
+
+  },
+
+
+  deleteText: {
+
+    color: COLORS.danger,
 
     fontSize: 12,
 
@@ -434,6 +499,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
 
   },
-
 
 });
