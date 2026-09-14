@@ -8,6 +8,7 @@ const skillRoutes = require("./routes/skillRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
 const skillRequestRoutes = require("./routes/skillRequestRoutes");
 const userRoutes = require("./routes/userRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
@@ -20,6 +21,7 @@ app.use("/api/skills", skillRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/skill-requests", skillRequestRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.json({
@@ -35,10 +37,14 @@ mongoose
     console.log("MongoDB connected successfully");
 
     app.listen(PORT, () => {
-      console.log(`LearnLoop server running on port ${PORT}`);
+      console.log(
+        `LearnLoop server running on port ${PORT}`
+      );
     });
   })
   .catch((error) => {
-    console.error("MongoDB connection failed:");
+    console.error(
+      "MongoDB connection failed:"
+    );
     console.error(error.message);
   });

@@ -1,13 +1,15 @@
 import ProfileStatCard from "@/components/profile-stat-card";
 import { COLORS } from "@/constants/learnloop-theme";
-import { TRANSACTIONS } from "@/data/transactions";
 import { useLearnLoop } from "@/context/LearnLoopContext";
+import { TRANSACTIONS } from "@/data/transactions";
 import { CreditTransaction } from "@/types/learnloop";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { ComponentProps, useEffect } from "react";
+import { ComponentProps, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -85,7 +87,11 @@ export default function ProfileScreen() {
   const {
     state,
     loadUserById,
+    logout,
   } = useLearnLoop();
+
+  const [loggingOut, setLoggingOut] =
+    useState(false);
 
   const currentUser =
     state.users[CURRENT_USER_ID];
@@ -104,6 +110,67 @@ export default function ProfileScreen() {
         new Date(a.date).getTime(),
     )
     .slice(0, 5);
+
+  const performLogout = async () => {
+    try {
+      setLoggingOut(true);
+
+      await logout();
+
+      router.replace("/auth/login");
+    } catch (error) {
+      console.error(
+        "Logout failed:",
+        error
+      );
+
+      if (Platform.OS === "web") {
+        window.alert(
+          "Unable to log out. Please try again."
+        );
+      } else {
+        Alert.alert(
+          "Logout failed",
+          "Unable to log out. Please try again."
+        );
+      }
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const handleLogout = () => {
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Are you sure you want to log out of LearnLoop?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      void performLogout();
+      return;
+    }
+
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out of LearnLoop?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Log Out",
+          style: "destructive",
+          onPress: () => {
+            void performLogout();
+          },
+        },
+      ],
+    );
+  };
 
   if (state.userLoading && !currentUser) {
     return (
@@ -531,6 +598,38 @@ export default function ProfileScreen() {
           </View>
         )}
       </View>
+
+      {/* LOG OUT */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.logoutButton,
+          pressed &&
+            styles.logoutButtonPressed,
+          loggingOut &&
+            styles.logoutButtonDisabled,
+        ]}
+        onPress={handleLogout}
+        disabled={loggingOut}
+      >
+        {loggingOut ? (
+          <ActivityIndicator
+            size="small"
+            color="#B91C1C"
+          />
+        ) : (
+          <Ionicons
+            name="log-out-outline"
+            size={21}
+            color="#B91C1C"
+          />
+        )}
+
+        <Text style={styles.logoutButtonText}>
+          {loggingOut
+            ? "Logging Out..."
+            : "Log Out"}
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -878,6 +977,34 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
+    fontWeight: "700",
+  },
+
+  logoutButton: {
+    minHeight: 54,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    borderRadius: 14,
+    marginTop: 2,
+    marginBottom: 16,
+    gap: 8,
+  },
+
+  logoutButtonPressed: {
+    opacity: 0.7,
+  },
+
+  logoutButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  logoutButtonText: {
+    color: "#B91C1C",
+    fontSize: 15,
     fontWeight: "700",
   },
 });

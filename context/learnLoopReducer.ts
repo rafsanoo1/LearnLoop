@@ -1,5 +1,5 @@
-import { SkillOffer } from "@/types/learnloop";
 import { AppUser } from "@/services/userService";
+import { SkillOffer } from "@/types/learnloop";
 
 export interface LearnLoopState {
   skills: SkillOffer[];
@@ -84,6 +84,9 @@ export type LearnLoopAction =
   | {
       type: "SET_CURRENT_USER_ERROR";
       payload: string;
+    }
+  | {
+      type: "CLEAR_CURRENT_USER";
     };
 
 export const learnLoopReducer = (
@@ -194,6 +197,14 @@ export const learnLoopReducer = (
         currentUser: null,
         currentUserLoading: false,
         currentUserError: action.payload,
+      };
+
+    case "CLEAR_CURRENT_USER":
+      return {
+        ...state,
+        currentUser: null,
+        currentUserLoading: false,
+        currentUserError: null,
       };
 
     default:

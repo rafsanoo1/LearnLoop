@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useReducer,
+  useState,
 } from "react";
 
 import {
@@ -12,11 +13,19 @@ import {
 } from "@/services/skillService";
 
 import {
+  AppUser,
   getUserById as fetchUserById,
   updateUser as updateUserApi,
   UpdateUserRequest,
-  AppUser,
 } from "@/services/userService";
+
+import {
+  AuthUser,
+  getStoredAuthUser,
+  LoginRequest,
+  loginUser,
+  logoutUser as logoutAuthUser,
+} from "@/services/authService";
 
 import {
   initialLearnLoopState,
@@ -24,10 +33,15 @@ import {
   LearnLoopState,
 } from "@/context/learnLoopReducer";
 
-const CURRENT_USER_ID = "u1";
-
 interface LearnLoopContextValue {
   state: LearnLoopState;
+
+  authUser: AuthUser | null;
+  authLoading: boolean;
+
+  login: (
+    data: LoginRequest
+  ) => Promise<AuthUser>;
 
   loadSkills: () => Promise<void>;
 
@@ -46,6 +60,8 @@ interface LearnLoopContextValue {
   updateCurrentUser: (
     userData: UpdateUserRequest
   ) => Promise<AppUser>;
+
+  logout: () => Promise<void>;
 }
 
 const LearnLoopContext =
@@ -64,6 +80,23 @@ export function LearnLoopProvider({
     learnLoopReducer,
     initialLearnLoopState
   );
+
+  const [authUser, setAuthUser] =
+    useState<AuthUser | null>(null);
+
+  const [authLoading, setAuthLoading] =
+    useState(true);
+
+  const login = async (
+    data: LoginRequest
+  ): Promise<AuthUser> => {
+    const response =
+      await loginUser(data);
+
+    setAuthUser(response.user);
+
+    return response.user;
+  };
 
   const loadSkills = async () => {
     dispatch({
@@ -167,6 +200,10 @@ export function LearnLoopProvider({
       return;
     }
 
+    if (!authUser) {
+      return;
+    }
+
     dispatch({
       type: "SET_CURRENT_USER_LOADING",
     });
@@ -174,7 +211,7 @@ export function LearnLoopProvider({
     try {
       const user =
         await fetchUserById(
-          CURRENT_USER_ID
+          authUser.id
         );
 
       dispatch({
@@ -200,10 +237,16 @@ export function LearnLoopProvider({
   const updateCurrentUser = async (
     userData: UpdateUserRequest
   ): Promise<AppUser> => {
+    if (!authUser) {
+      throw new Error(
+        "No authenticated user."
+      );
+    }
+
     try {
       const updatedUser =
         await updateUserApi(
-          CURRENT_USER_ID,
+          authUser.id,
           userData
         );
 
@@ -224,20 +267,61 @@ export function LearnLoopProvider({
     }
   };
 
+  const logout = async () => {
+    try {
+      await logoutAuthUser();
+    } finally {
+      setAuthUser(null);
+
+      dispatch({
+        type: "CLEAR_CURRENT_USER",
+      });
+    }
+  };
+
   useEffect(() => {
-    void loadCurrentUser();
+    const restoreAuthentication =
+      async () => {
+        try {
+          const storedUser =
+            await getStoredAuthUser();
+
+          setAuthUser(storedUser);
+        } catch (error) {
+          console.error(
+            "Failed to restore authentication:",
+            error
+          );
+
+          setAuthUser(null);
+        } finally {
+          setAuthLoading(false);
+        }
+      };
+
+    void restoreAuthentication();
   }, []);
+
+  useEffect(() => {
+    if (!authLoading && authUser) {
+      void loadCurrentUser();
+    }
+  }, [authLoading, authUser]);
 
   return (
     <LearnLoopContext.Provider
       value={{
         state,
+        authUser,
+        authLoading,
+        login,
         loadSkills,
         loadSkillById,
         clearSelectedSkill,
         loadUserById,
         loadCurrentUser,
         updateCurrentUser,
+        logout,
       }}
     >
       {children}
